@@ -1079,17 +1079,13 @@ class MailcowMCPServer {
    */
   async start(): Promise<void> {
     try {
-      // Initialize server components
+      // Connect transport first so MCP log notifications reach the client
+      const transport = new StdioServerTransport();
+      await this.server.connect(transport);
+
+      // Initialize server components (logging now goes through the connected transport)
       await this.initialize();
 
-      // Create transport and connect
-      const transport = new StdioServerTransport();
-      
-      this.logger.info('Starting Mailcow MCP Server...');
-      
-      // Connect server to transport
-      await this.server.connect(transport);
-      
       this.logger.info('Mailcow MCP Server started successfully');
       
     } catch (error) {

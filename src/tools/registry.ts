@@ -65,7 +65,7 @@ export class ToolRegistry implements IToolRegistry {
     }
 
     this.tools.set(tool.name, tool);
-    this.logger.info(`Tool registered: ${tool.name}`, { tool: tool.name });
+    this.logger.debug(`Tool registered: ${tool.name}`, { tool: tool.name });
   }
 
   /**
@@ -92,7 +92,7 @@ export class ToolRegistry implements IToolRegistry {
       });
     }
 
-    this.logger.info(`Tool handler registered: ${toolName}`, { tool: toolName });
+    this.logger.debug(`Tool handler registered: ${toolName}`, { tool: toolName });
   }
 
   /**
