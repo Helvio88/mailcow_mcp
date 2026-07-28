@@ -4,6 +4,9 @@
   "description": "Model Context Protocol server for Mailcow email server",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "mailcow-mcp": "bin/mcp.js"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "ts-node src/index.ts",
