@@ -16,7 +16,7 @@ process.env.MAILCOW_API_ACCESS_TYPE = 'read-only';
 console.log('🧪 Integration Test: Testing Mailcow MCP Server startup...');
 
 // Start the server process
-const serverPath = path.join(__dirname, '../../dist/src/index.js');
+const serverPath = path.join(__dirname, '../../dist/index.js');
 const serverProcess = spawn('node', [serverPath], {
   stdio: ['pipe', 'pipe', 'pipe'],
   env: process.env
