@@ -9,6 +9,34 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+/**
+ * Apply supported CLI overrides before configuration is loaded.
+ *
+ * Bun treats arguments after a Git dependency as executable arguments. Some
+ * callers include the binary name there as well, so tolerate a leading
+ * "mailcow-mcp" token.
+ */
+function applyCLIOverrides(args: string[] = process.argv.slice(2)): void {
+  const normalizedArgs = args[0] === 'mailcow-mcp' ? args.slice(1) : args;
+
+  for (let index = 0; index < normalizedArgs.length; index += 1) {
+    const argument = normalizedArgs[index];
+
+    if (argument === '--port') {
+      const port = normalizedArgs[index + 1];
+      if (!port) {
+        throw new Error('--port requires a value');
+      }
+      process.env.MCP_SERVER_PORT = port;
+      index += 1;
+    } else if (argument.startsWith('--port=')) {
+      process.env.MCP_SERVER_PORT = argument.slice('--port='.length);
+    }
+  }
+}
+
+applyCLIOverrides();
+
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';

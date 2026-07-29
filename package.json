@@ -1,17 +1,17 @@
 {
   "name": "mailcow-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Model Context Protocol server for Mailcow email server",
   "main": "dist/index.js",
   "files": [
-    "bin/",
     "dist/index.js"
   ],
   "bin": {
-    "mailcow-mcp": "bin/mcp.js"
+    "mailcow-mcp": "dist/index.js"
   },
   "scripts": {
     "build": "esbuild src/index.ts --bundle --platform=node --target=node18 --outfile=dist/index.js --format=cjs",
+    "prepack": "npm run build",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
     "test": "jest",

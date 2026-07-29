@@ -29322,6 +29322,23 @@ var EmailTools = {
 
 // src/index.ts
 import_dotenv.default.config();
+function applyCLIOverrides(args = process.argv.slice(2)) {
+  const normalizedArgs = args[0] === "mailcow-mcp" ? args.slice(1) : args;
+  for (let index = 0; index < normalizedArgs.length; index += 1) {
+    const argument = normalizedArgs[index];
+    if (argument === "--port") {
+      const port = normalizedArgs[index + 1];
+      if (!port) {
+        throw new Error("--port requires a value");
+      }
+      process.env.MCP_SERVER_PORT = port;
+      index += 1;
+    } else if (argument.startsWith("--port=")) {
+      process.env.MCP_SERVER_PORT = argument.slice("--port=".length);
+    }
+  }
+}
+applyCLIOverrides();
 var MailcowMCPServer = class {
   server;
   authManager;

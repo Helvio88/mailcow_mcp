@@ -20,6 +20,19 @@ A comprehensive TypeScript implementation that provides AI models with full cont
 
 ## 🚀 Quick Start
 
+Run directly from GitHub with Bun:
+
+```bash
+MAILCOW_API_URL=https://mail.example.com \
+MAILCOW_API_KEY=your-api-key \
+bunx github:Koshkaj/mailcow_mcp --port 3001
+```
+
+The CLI uses MCP's standard stdio transport. `--port` sets the server
+configuration value for clients that require it.
+
+Or run from a local checkout:
+
 ```bash
 # 1. Install dependencies
 npm install
