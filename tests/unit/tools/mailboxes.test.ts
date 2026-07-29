@@ -121,7 +121,7 @@ describe('Mailbox Management Tools', () => {
 
       expect(result.success).toBe(true);
       expect(result.result).toBeDefined();
-      expect(mailboxAPI.listMailboxes).toHaveBeenCalledWith();
+      expect(mailboxAPI.listMailboxes).toHaveBeenCalledWith(undefined);
       
       const content = result.result!.content[0];
       expect(content.type).toBe('text');
@@ -135,11 +135,14 @@ describe('Mailbox Management Tools', () => {
     });
 
     it('should filter mailboxes by domain', async () => {
-      (mailboxAPI.listMailboxes as jest.Mock).mockResolvedValue(sampleMailboxes);
+      (mailboxAPI.listMailboxes as jest.Mock).mockResolvedValue(
+        sampleMailboxes.filter((m) => m.domain === 'example.com')
+      );
 
       const result = await tool.execute({ domain: 'example.com' }, context);
 
       expect(result.success).toBe(true);
+      expect(mailboxAPI.listMailboxes).toHaveBeenCalledWith({ domain: 'example.com' });
       const content = result.result!.content[0];
       const data = JSON.parse((content as any).text);
       expect(data.filtered_mailboxes).toBe(2);

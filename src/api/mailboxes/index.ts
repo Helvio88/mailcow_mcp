@@ -12,10 +12,12 @@ export class MailboxAPI {
   constructor(private client: APIClient) {}
 
   async listMailboxes(params?: ListMailboxesParams): Promise<MailcowMailbox[]> {
-    const response = await this.client.get<MailcowMailbox[]>(
-      buildMailboxEndpoint(APIAction.LIST),
-      { params }
-    );
+    const endpoint = params?.domain
+      ? `${buildMailboxEndpoint(APIAction.LIST)}/${params.domain}`
+      : buildMailboxEndpoint(APIAction.LIST);
+    const response = await this.client.get<MailcowMailbox[]>(endpoint, {
+      params,
+    });
     
     // Handle different response formats
     if (Array.isArray(response)) {
@@ -51,11 +53,10 @@ export class MailboxAPI {
   }
 
   async getMailboxDetails(mailboxId: string): Promise<MailcowMailbox> {
-    const mailboxes = await this.client.get<MailcowMailbox[]>(
-      buildMailboxEndpoint(APIAction.GET)
+    const mailbox = await this.client.get<MailcowMailbox>(
+      `${buildMailboxEndpoint(APIAction.GET)}/${mailboxId}`
     );
-    const mailbox = mailboxes.find((m) => m.username === mailboxId);
-    if (!mailbox) {
+    if (!mailbox || !mailbox.username) {
       throw new Error(`Mailbox not found: ${mailboxId}`);
     }
     return mailbox;

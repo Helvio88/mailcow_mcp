@@ -37,7 +37,9 @@ export class APIClient {
           throw new Error(`API Error ${status}: ${data?.message || data || 'Unknown error'}`);
         } else if (error.request) {
           // Request was made but no response received
-          throw new Error('Network error: No response received');
+          throw new Error(
+            `Network error: No response received${error.code ? ` (${error.code})` : ''}`
+          );
         } else {
           // Something else happened
           throw new Error(`Request error: ${error.message}`);

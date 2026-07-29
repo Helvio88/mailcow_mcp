@@ -98,14 +98,12 @@ export class ListMailboxesTool extends BaseTool {
       } = input;
 
       // Fetch mailboxes from API
-      const mailboxes = await this.mailboxAPI.listMailboxes();
+      const mailboxes = await this.mailboxAPI.listMailboxes(
+        typeof domain === 'string' ? { domain } : undefined
+      );
 
       // Apply filters
       let filteredMailboxes = mailboxes;
-
-      if (typeof domain === 'string') {
-        filteredMailboxes = filteredMailboxes.filter(mailbox => mailbox.domain === domain);
-      }
 
       if (active_only) {
         filteredMailboxes = filteredMailboxes.filter(mailbox => mailbox.active === 1);

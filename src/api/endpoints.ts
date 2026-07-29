@@ -13,6 +13,7 @@ export const API_ENDPOINTS = {
     CREATE: '/api/v1/add/domain',
     UPDATE: '/api/v1/edit/domain',
     DELETE: '/api/v1/delete/domain',
+    GET: '/api/v1/get/domain',
   },
 
   // Mailbox endpoints
@@ -21,6 +22,7 @@ export const API_ENDPOINTS = {
     CREATE: '/api/v1/add/mailbox',
     UPDATE: '/api/v1/edit/mailbox',
     DELETE: '/api/v1/delete/mailbox',
+    GET: '/api/v1/get/mailbox',
   },
 
   // Alias endpoints
@@ -146,6 +148,8 @@ export function buildDomainEndpoint(action: APIAction): string {
       return API_ENDPOINTS.DOMAINS.UPDATE;
     case APIAction.DELETE:
       return API_ENDPOINTS.DOMAINS.DELETE;
+    case APIAction.GET:
+      return API_ENDPOINTS.DOMAINS.GET;
     default:
       throw new Error(`Unknown domain action: ${action}`);
   }
@@ -161,6 +165,8 @@ export function buildMailboxEndpoint(action: APIAction): string {
       return API_ENDPOINTS.MAILBOXES.UPDATE;
     case APIAction.DELETE:
       return API_ENDPOINTS.MAILBOXES.DELETE;
+    case APIAction.GET:
+      return API_ENDPOINTS.MAILBOXES.GET;
     default:
       throw new Error(`Unknown mailbox action: ${action}`);
   }

@@ -9,7 +9,7 @@ export const defaultConfig: DefaultConfig = {
       url: 'http://localhost:8080',
       key: 'development-api-key',
       accessType: 'read-write',
-      timeout: 5000,
+      timeout: 60000,
       verifySSL: false,
       retryAttempts: 3,
       rateLimit: {
@@ -58,7 +58,7 @@ export const defaultConfig: DefaultConfig = {
       url: 'https://mailcow.example.com',
       key: '', // Must be set via environment
       accessType: 'read-only',
-      timeout: 10000,
+      timeout: 60000,
       verifySSL: true,
       retryAttempts: 5,
       rateLimit: {
@@ -202,7 +202,7 @@ export function getMinimalConfig(): Partial<MailcowConfig> {
       url: 'https://mailcow.example.com',
       key: 'your-api-key-here',
       accessType: 'read-only',
-      timeout: 5000,
+      timeout: 60000,
       verifySSL: true,
       retryAttempts: 3,
       rateLimit: {

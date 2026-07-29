@@ -18503,7 +18503,7 @@ var defaultConfig = {
       url: "http://localhost:8080",
       key: "development-api-key",
       accessType: "read-write",
-      timeout: 5e3,
+      timeout: 6e4,
       verifySSL: false,
       retryAttempts: 3,
       rateLimit: {
@@ -18555,7 +18555,7 @@ var defaultConfig = {
       key: "",
       // Must be set via environment
       accessType: "read-only",
-      timeout: 1e4,
+      timeout: 6e4,
       verifySSL: true,
       retryAttempts: 5,
       rateLimit: {
@@ -22419,7 +22419,9 @@ var APIClient = class {
           const { status, data } = error.response;
           throw new Error(`API Error ${status}: ${data?.message || data || "Unknown error"}`);
         } else if (error.request) {
-          throw new Error("Network error: No response received");
+          throw new Error(
+            `Network error: No response received${error.code ? ` (${error.code})` : ""}`
+          );
         } else {
           throw new Error(`Request error: ${error.message}`);
         }
@@ -24245,14 +24247,16 @@ var API_ENDPOINTS = {
     LIST: "/api/v1/get/domain/all",
     CREATE: "/api/v1/add/domain",
     UPDATE: "/api/v1/edit/domain",
-    DELETE: "/api/v1/delete/domain"
+    DELETE: "/api/v1/delete/domain",
+    GET: "/api/v1/get/domain"
   },
   // Mailbox endpoints
   MAILBOXES: {
     LIST: "/api/v1/get/mailbox/all",
     CREATE: "/api/v1/add/mailbox",
     UPDATE: "/api/v1/edit/mailbox",
-    DELETE: "/api/v1/delete/mailbox"
+    DELETE: "/api/v1/delete/mailbox",
+    GET: "/api/v1/get/mailbox"
   },
   // Alias endpoints
   ALIASES: {
@@ -24361,6 +24365,8 @@ function buildDomainEndpoint(action) {
       return API_ENDPOINTS.DOMAINS.UPDATE;
     case "delete" /* DELETE */:
       return API_ENDPOINTS.DOMAINS.DELETE;
+    case "get" /* GET */:
+      return API_ENDPOINTS.DOMAINS.GET;
     default:
       throw new Error(`Unknown domain action: ${action}`);
   }
@@ -24375,6 +24381,8 @@ function buildMailboxEndpoint(action) {
       return API_ENDPOINTS.MAILBOXES.UPDATE;
     case "delete" /* DELETE */:
       return API_ENDPOINTS.MAILBOXES.DELETE;
+    case "get" /* GET */:
+      return API_ENDPOINTS.MAILBOXES.GET;
     default:
       throw new Error(`Unknown mailbox action: ${action}`);
   }
@@ -24488,11 +24496,10 @@ var DomainAPI = class {
     });
   }
   async getDomainDetails(domainId) {
-    const domains = await this.client.get(
-      buildDomainEndpoint("list" /* LIST */)
+    const domain = await this.client.get(
+      `${buildDomainEndpoint("get" /* GET */)}/${domainId}`
     );
-    const domain = domains.find((d) => d.domain_name === domainId || d.domain === domainId);
-    if (!domain) {
+    if (!domain || !(domain.domain_name || domain.domain)) {
       throw new Error(`Domain not found: ${domainId}`);
     }
     return domain;
@@ -24571,11 +24578,10 @@ var ListMailboxesTool = class extends BaseTool {
         limit = 100,
         show_quota_usage = true
       } = input;
-      const mailboxes = await this.mailboxAPI.listMailboxes();
+      const mailboxes = await this.mailboxAPI.listMailboxes(
+        typeof domain === "string" ? { domain } : void 0
+      );
       let filteredMailboxes = mailboxes;
-      if (typeof domain === "string") {
-        filteredMailboxes = filteredMailboxes.filter((mailbox) => mailbox.domain === domain);
-      }
       if (active_only) {
         filteredMailboxes = filteredMailboxes.filter((mailbox) => mailbox.active === 1);
       }
@@ -25099,10 +25105,10 @@ var MailboxAPI = class {
   }
   client;
   async listMailboxes(params) {
-    const response = await this.client.get(
-      buildMailboxEndpoint("list" /* LIST */),
-      { params }
-    );
+    const endpoint = params?.domain ? `${buildMailboxEndpoint("list" /* LIST */)}/${params.domain}` : buildMailboxEndpoint("list" /* LIST */);
+    const response = await this.client.get(endpoint, {
+      params
+    });
     if (Array.isArray(response)) {
       return response;
     } else if (response && typeof response === "object") {
@@ -25130,11 +25136,10 @@ var MailboxAPI = class {
     });
   }
   async getMailboxDetails(mailboxId) {
-    const mailboxes = await this.client.get(
-      buildMailboxEndpoint("get" /* GET */)
+    const mailbox = await this.client.get(
+      `${buildMailboxEndpoint("get" /* GET */)}/${mailboxId}`
     );
-    const mailbox = mailboxes.find((m) => m.username === mailboxId);
-    if (!mailbox) {
+    if (!mailbox || !mailbox.username) {
       throw new Error(`Mailbox not found: ${mailboxId}`);
     }
     return mailbox;
