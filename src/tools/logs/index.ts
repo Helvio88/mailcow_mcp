@@ -30,7 +30,8 @@ export class GetLogsTool extends BaseTool {
       },
       service: {
         type: 'string' as const,
-        description: 'Filter by service name (e.g., postfix, dovecot, rspamd)',
+        description:
+          'Filter by Mailcow log source (e.g., postfix, dovecot, rspamd, api, ui, sasl, watchdog)',
         pattern: '^[a-zA-Z0-9._-]+$',
         maxLength: 50,
       },

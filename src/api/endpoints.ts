@@ -107,6 +107,8 @@ export const API_ENDPOINTS = {
 
   // Log endpoints
   LOGS: {
+    // Mailcow requires a source and count suffix:
+    // /api/v1/get/logs/{source}/{count}
     LIST: '/api/v1/get/logs',
   },
 

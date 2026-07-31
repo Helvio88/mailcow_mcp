@@ -8,7 +8,7 @@ This directory contains the HTTP client and API endpoint handlers for communicat
 
 1. **API Endpoint Structure**: Our implementation correctly uses the action-based pattern that Mailcow uses:
    - `/api/v1/get/domain` ✅
-   - `/api/v1/add/domain` ✅  
+   - `/api/v1/add/domain` ✅
    - `/api/v1/edit/domain` ✅
    - `/api/v1/delete/domain` ✅
 
@@ -65,7 +65,7 @@ Based on Mailcow documentation analysis, we need to implement:
 ### 🔄 **Implementation Status:**
 
 - **Domains**: ✅ Complete
-- **Mailboxes**: ✅ Complete  
+- **Mailboxes**: ✅ Complete
 - **Aliases**: ✅ Complete
 - **Users**: ✅ Complete
 - **DKIM**: ✅ Complete
@@ -129,7 +129,7 @@ api/
 // Mailcow uses action-based endpoints, not RESTful:
 GET  /api/v1/get/{resource}     // List/Get resources
 POST /api/v1/add/{resource}     // Create resource
-POST /api/v1/edit/{resource}    // Update resource  
+POST /api/v1/edit/{resource}    // Update resource
 POST /api/v1/delete/{resource}  // Delete resource
 ```
 
@@ -231,7 +231,7 @@ POST /api/v1/delete/{resource}  // Delete resource
 
 ### 17. Log Management (`logs/`)
 - `LogsAPI` class for log retrieval
-- Get logs: `GET /api/v1/get/logs`
+- Get logs: `GET /api/v1/get/logs/{source}/{count}`
 - Filter by service type (access, error, performance)
 - Client-side filtering for different log types
 
@@ -330,10 +330,10 @@ try {
 ## Security Considerations
 
 1. **API Key Security**: X-API-Key header, never logged
-2. **HTTPS Only**: Always use HTTPS for API requests  
+2. **HTTPS Only**: Always use HTTPS for API requests
 3. **Certificate Validation**: Configurable SSL verification
 4. **Request Validation**: All parameters validated via TypeScript
 5. **Response Validation**: Type-safe response handling
 6. **Error Handling**: No sensitive information exposed in errors
 7. **Rate Limiting**: Configurable via APIConfig
-8. **Audit Logging**: Integrated with auth system 
+8. **Audit Logging**: Integrated with auth system

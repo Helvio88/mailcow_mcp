@@ -67,7 +67,7 @@ import { EmailTools } from './tools/email/index.js';
 // import { AliasTools } from './tools/aliases/index.js';
 
 const SERVER_NAME = 'mailcow-mcp';
-const SERVER_VERSION = '0.1.2';
+const SERVER_VERSION = '0.1.3';
 
 /**
  * Main MCP Server class

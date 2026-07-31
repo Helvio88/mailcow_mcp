@@ -54,7 +54,7 @@ async function run() {
 
     const serverVersion = client.getServerVersion();
     assert.equal(serverVersion.name, 'mailcow-mcp');
-    assert.equal(serverVersion.version, '0.1.2');
+    assert.equal(serverVersion.version, '0.1.3');
 
     const toolsResult = await withTimeout(client.listTools(), 'tools/list');
     const toolNames = toolsResult.tools.map(tool => tool.name);
@@ -70,7 +70,7 @@ async function run() {
     assert.notEqual(healthResult.isError, true);
     const health = JSON.parse(healthResult.content[0].text);
     assert.equal(health.status, 'healthy');
-    assert.equal(health.server.version, '0.1.2');
+    assert.equal(health.server.version, '0.1.3');
 
     const configResult = await withTimeout(
       client.callTool({ name: 'get_config', arguments: {} }),
