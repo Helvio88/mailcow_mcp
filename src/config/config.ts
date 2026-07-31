@@ -24,11 +24,20 @@ export class ConfigManager {
 
     // Validate the final configuration
     const validation = validateConfig(this.config);
-    
+
     if (validation.success) {
-      this.sources.push({ 
-        type: 'environment', 
-        config: envConfig,
+      const sanitizedEnvConfig: Partial<MailcowConfig> = {
+        ...envConfig,
+        ...(envConfig.api && {
+          api: {
+            ...envConfig.api,
+            key: envConfig.api.key ? '[REDACTED]' : '',
+          },
+        }),
+      };
+      this.sources.push({
+        type: 'environment',
+        config: sanitizedEnvConfig,
         priority: 80,
         timestamp: new Date()
       });
@@ -50,7 +59,7 @@ export class ConfigManager {
   updateConfig(updates: Partial<MailcowConfig>): ConfigValidationResult {
     const newConfig = { ...this.config, ...updates };
     const validation = validateConfig(newConfig);
-    
+
     if (validation.success) {
       this.config = newConfig;
     }
@@ -93,4 +102,4 @@ export class ConfigManager {
 }
 
 // Export singleton instance
-export const configManager = new ConfigManager(); 
+export const configManager = new ConfigManager();

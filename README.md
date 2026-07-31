@@ -25,11 +25,28 @@ Run directly from GitHub with Bun:
 ```bash
 MAILCOW_API_URL=https://mail.example.com \
 MAILCOW_API_KEY=your-api-key \
-bunx github:Koshkaj/mailcow_mcp --port 3001
+bunx github:Koshkaj/mailcow_mcp
 ```
 
-The CLI uses MCP's standard stdio transport. `--port` sets the server
-configuration value for clients that require it.
+The CLI uses MCP's standard stdio transport: the MCP client starts the process
+and communicates over stdin/stdout. It does not open an HTTP port. A legacy
+`--port` argument is accepted for compatibility, but it only changes the
+reported configuration value.
+
+Example MCP client configuration:
+
+```json
+{
+  "command": "bunx",
+  "args": ["github:Koshkaj/mailcow_mcp"],
+  "env": {
+    "MAILCOW_API_URL": "https://mail.example.com",
+    "MAILCOW_API_KEY": "your-api-key",
+    "MAILCOW_API_ACCESS_TYPE": "read-only",
+    "MAILCOW_TIMEOUT": "60000"
+  }
+}
+```
 
 Or run from a local checkout:
 

@@ -6,8 +6,8 @@ export class APIClient {
   private apiKey: string;
 
   constructor(config: APIConfig) {
-    this.client = axios.create({ 
-      baseURL: config.url, 
+    this.client = axios.create({
+      baseURL: config.url,
       timeout: config.timeout,
       headers: {
         'Content-Type': 'application/json',
@@ -48,7 +48,7 @@ export class APIClient {
     );
   }
 
-  async get<T>(url: string, params?: Record<string, unknown>): Promise<T> {
+  async get<T>(url: string, params?: object): Promise<T> {
     try {
       const response: AxiosResponse<T> = await this.client.get(url, { params });
       return response.data;
@@ -83,4 +83,4 @@ export class APIClient {
       throw new Error(`DELETE request failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
-} 
+}

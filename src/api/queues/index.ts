@@ -8,7 +8,7 @@ export class QueuesAPI {
   async listQueueItems(params?: ListQueueParams): Promise<MailcowQueueItem[]> {
     return this.client.get<MailcowQueueItem[]>(
       buildQueueEndpoint(APIAction.LIST),
-      { params }
+      params
     );
   }
 
@@ -55,4 +55,4 @@ export class QueuesAPI {
       items: [itemId],
     });
   }
-} 
+}

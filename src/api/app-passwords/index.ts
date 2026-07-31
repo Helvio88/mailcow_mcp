@@ -4,11 +4,11 @@
  */
 
 import { APIClient } from '../client';
-import { 
-  MailcowAppPassword, 
-  CreateAppPasswordRequest, 
+import {
+  MailcowAppPassword,
+  CreateAppPasswordRequest,
   ListAppPasswordsParams,
-  MailcowAPIResponse 
+  MailcowAPIResponse
 } from '../../types/mailcow';
 import { buildAppPasswdEndpoint } from '../endpoints';
 import { APIAction } from '../../types/api';
@@ -27,7 +27,7 @@ export class AppPasswordsAPI {
   ): Promise<MailcowAppPassword[]> {
     const response = await this.client.get<MailcowAppPassword[]>(
       buildAppPasswdEndpoint(APIAction.LIST),
-      { params }
+      params
     );
     return response;
   }
@@ -223,4 +223,4 @@ export class AppPasswordsAPI {
     const diffTime = Math.abs(now.getTime() - created.getTime());
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }
-} 
+}

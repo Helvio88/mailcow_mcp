@@ -14,9 +14,9 @@ export class DomainAPI {
   async listDomains(params?: ListDomainsParams): Promise<MailcowDomain[]> {
     const response = await this.client.get<MailcowDomain[]>(
       buildDomainEndpoint(APIAction.LIST),
-      { params }
+      params
     );
-    
+
     // Handle different response formats
     if (Array.isArray(response)) {
       return response;
@@ -25,7 +25,7 @@ export class DomainAPI {
       const domains = (response as any).domains || (response as any).data || response;
       return Array.isArray(domains) ? domains : [domains];
     }
-    
+
     return [];
   }
 
@@ -59,4 +59,4 @@ export class DomainAPI {
     }
     return domain;
   }
-} 
+}

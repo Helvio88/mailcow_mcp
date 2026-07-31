@@ -59,7 +59,7 @@ export function getEnvironmentVariableMapping(): EnvironmentVariableMapping {
     MAILCOW_API_KEY: 'your-api-key-here',
     MAILCOW_API_ACCESS_TYPE: 'read-only',
     MAILCOW_VERIFY_SSL: 'true',
-    MAILCOW_TIMEOUT: '5000',
+    MAILCOW_TIMEOUT: '60000',
     MCP_SERVER_PORT: '3000',
     MCP_SERVER_HOST: 'localhost',
     LOG_LEVEL: 'info',
@@ -113,7 +113,7 @@ export function validateEnvironmentVariables(): string[] {
  */
 export function getCurrentEnvironment(): 'development' | 'production' | 'test' {
   const env = process.env.NODE_ENV?.toLowerCase();
-  
+
   switch (env) {
     case 'production':
       return 'production';
@@ -122,4 +122,4 @@ export function getCurrentEnvironment(): 'development' | 'production' | 'test' {
     default:
       return 'development';
   }
-} 
+}

@@ -66,6 +66,9 @@ import { LogsAPI } from './api/logs/index.js';
 import { EmailTools } from './tools/email/index.js';
 // import { AliasTools } from './tools/aliases/index.js';
 
+const SERVER_NAME = 'mailcow-mcp';
+const SERVER_VERSION = '0.1.2';
+
 /**
  * Main MCP Server class
  */
@@ -81,8 +84,17 @@ class MailcowMCPServer {
     // Initialize MCP Server
     this.server = new Server(
       {
-        name: 'mailcow-mcp',
-        version: '0.1.0',
+        name: SERVER_NAME,
+        version: SERVER_VERSION,
+      },
+      {
+        // SDK v1 requires capabilities to be declared before request handlers
+        // are registered. Logging is included because McpLogDestination emits
+        // standard notifications/message notifications.
+        capabilities: {
+          tools: {},
+          logging: {},
+        },
       }
     );
 
@@ -236,27 +248,47 @@ class MailcowMCPServer {
    * Create tool execution context
    */
   private async createToolContext(toolName: string) {
-    // Basic context - can be enhanced with user authentication later
+    const accessLevel = configManager.getConfig().api.accessType;
+    const readPermissions = [
+      'execute',
+      'read',
+      'domains:read',
+      'mailboxes:read',
+      'users:read',
+      'dkim:read',
+      'queues:read',
+      'syncjobs:read',
+      'logs:read',
+      'system:read',
+      'email:read',
+      'templates:read',
+    ];
+    const writePermissions = [
+      'write',
+      'delete',
+      'domains:write',
+      'domains:delete',
+      'mailboxes:write',
+      'mailboxes:delete',
+      'users:write',
+      'users:delete',
+      'dkim:write',
+      'dkim:delete',
+      'queues:write',
+      'queues:delete',
+      'syncjobs:write',
+      'syncjobs:delete',
+      'system:write',
+      'email:send',
+    ];
+
     return {
       userId: 'system',
       requestId: this.generateRequestId(),
-      permissions: [
-        // Generic permissions
-        'execute', 'read', 'write', 'delete',
-        // Domain permissions
-        'domains:read', 'domains:write', 'domains:delete',
-        // Mailbox permissions  
-        'mailboxes:read', 'mailboxes:write', 'mailboxes:delete',
-        // Queue permissions
-        'queues:read', 'queues:write', 'queues:delete',
-        // Sync job permissions
-        'syncjobs:read', 'syncjobs:write', 'syncjobs:delete',
-        // Log permissions
-        'logs:read',
-        // Email permissions
-        'email:send', 'email:read'
-      ], // Based on API key capabilities
-      accessLevel: 'read-write' as const, // From API key validation
+      permissions: accessLevel === 'read-write'
+        ? [...readPermissions, ...writePermissions]
+        : readPermissions,
+      accessLevel,
       apiClient: this.apiClient,
       toolName,
       timestamp: new Date(),
@@ -302,8 +334,8 @@ class MailcowMCPServer {
         status: 'healthy',
         timestamp: new Date().toISOString(),
         server: {
-          name: 'mailcow-mcp',
-          version: '0.1.0',
+          name: SERVER_NAME,
+          version: SERVER_VERSION,
           uptime: process.uptime(),
         },
         api: {
@@ -390,8 +422,10 @@ class MailcowMCPServer {
           throw new Error('API client not available');
         }
 
-        // Try to make a basic API call
-        const response = await client.get('/api/v1/get/domain/all');
+        // Use Mailcow's small status response. Fetching every domain is a very
+        // expensive connectivity probe on large installations and can exceed
+        // MCP client request deadlines.
+        const response = await client.get('/api/v1/get/status/containers');
         
         return {
           success: true,
@@ -401,7 +435,9 @@ class MailcowMCPServer {
               text: JSON.stringify({
                 status: 'connected',
                 timestamp: new Date().toISOString(),
-                response: Array.isArray(response) ? `${response.length} domains found` : 'API responded',
+                response: Array.isArray(response)
+                  ? `${response.length} containers found`
+                  : 'API responded',
               }, null, 2),
             }],
           },
@@ -1107,12 +1143,13 @@ class MailcowMCPServer {
    */
   async start(): Promise<void> {
     try {
-      // Connect transport first so MCP log notifications reach the client
+      // Finish configuration and tool registration before accepting requests.
+      // Connecting first creates a race where a fast client can initialize and
+      // list/call tools while the registry is still only partially populated.
+      await this.initialize();
+
       const transport = new StdioServerTransport();
       await this.server.connect(transport);
-
-      // Initialize server components (logging now goes through the connected transport)
-      await this.initialize();
 
       this.logger.info('Mailcow MCP Server started successfully');
       

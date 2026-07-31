@@ -18,7 +18,7 @@ MAILCOW_API_ACCESS_TYPE=read-write                 # read-only | read-write
 ```bash
 # Security Settings
 MAILCOW_VERIFY_SSL=true                            # SSL certificate verification
-MAILCOW_TIMEOUT=30000                              # Request timeout (milliseconds)
+MAILCOW_TIMEOUT=60000                              # Request timeout (milliseconds)
 
 # MCP Server Settings  
 MCP_SERVER_PORT=3000                               # MCP server port
@@ -77,7 +77,7 @@ MAILCOW_API_URL=https://mail.company.com
 MAILCOW_API_KEY=abcd1234efgh5678ijkl9012mnop3456
 MAILCOW_API_ACCESS_TYPE=read-write
 MAILCOW_VERIFY_SSL=true
-MAILCOW_TIMEOUT=30000
+MAILCOW_TIMEOUT=60000
 
 # MCP Server Configuration
 MCP_SERVER_PORT=3000
@@ -398,7 +398,7 @@ MAILCOW_API_URL=https://mail.company.com
 MAILCOW_API_KEY=prod1234567890123456789012345678901
 MAILCOW_API_ACCESS_TYPE=read-write
 MAILCOW_VERIFY_SSL=true
-MAILCOW_TIMEOUT=30000
+MAILCOW_TIMEOUT=60000
 MCP_SERVER_PORT=3000
 MCP_LOG_LEVEL=warn
 MCP_RATE_LIMIT=200

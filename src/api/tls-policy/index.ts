@@ -4,12 +4,12 @@
  */
 
 import { APIClient } from '../client';
-import { 
-  MailcowTLSPolicy, 
-  CreateTLSPolicyRequest, 
-  UpdateTLSPolicyRequest, 
+import {
+  MailcowTLSPolicy,
+  CreateTLSPolicyRequest,
+  UpdateTLSPolicyRequest,
   ListTLSPolicyParams,
-  MailcowAPIResponse 
+  MailcowAPIResponse
 } from '../../types/mailcow';
 import { buildTLSPolicyEndpoint } from '../endpoints';
 import { APIAction } from '../../types/api';
@@ -28,7 +28,7 @@ export class TLSPolicyAPI {
   ): Promise<MailcowTLSPolicy[]> {
     const response = await this.client.get<MailcowTLSPolicy[]>(
       buildTLSPolicyEndpoint(APIAction.LIST),
-      { params }
+      params
     );
     return response;
   }
@@ -220,4 +220,4 @@ export class TLSPolicyAPI {
     ];
     return securePolicies.includes(policy.policy);
   }
-} 
+}

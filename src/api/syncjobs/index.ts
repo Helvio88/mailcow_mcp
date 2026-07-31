@@ -1,9 +1,9 @@
 import { APIClient } from '../client';
-import { 
-  MailcowSyncJob, 
-  ListSyncJobsParams, 
-  CreateSyncJobRequest, 
-  UpdateSyncJobRequest 
+import {
+  MailcowSyncJob,
+  ListSyncJobsParams,
+  CreateSyncJobRequest,
+  UpdateSyncJobRequest
 } from '../../types';
 import { APIAction } from '../../types/api';
 import { buildSyncJobEndpoint } from '../endpoints';
@@ -14,7 +14,7 @@ export class JobsAPI {
   async listSyncJobs(params?: ListSyncJobsParams): Promise<MailcowSyncJob[]> {
     return this.client.get<MailcowSyncJob[]>(
       buildSyncJobEndpoint(APIAction.LIST),
-      { params }
+      params
     );
   }
 
@@ -58,4 +58,4 @@ export class JobsAPI {
   async deactivateSyncJob(jobId: number): Promise<MailcowSyncJob> {
     return this.updateSyncJob(jobId, { active: false });
   }
-} 
+}

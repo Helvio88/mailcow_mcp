@@ -41,7 +41,7 @@ export const defaultConfig: DefaultConfig = {
       },
       maxConnections: 100,
       keepAliveTimeout: 30000,
-      requestTimeout: 30000,
+      requestTimeout: 60000,
     },
     logging: {
       level: 'debug',
@@ -159,7 +159,7 @@ export const defaultConfig: DefaultConfig = {
  */
 export function getDefaultConfig(environment: 'development' | 'production' | 'test' = 'development'): MailcowConfig {
   const envConfig = defaultConfig[environment];
-  
+
   // Merge with development defaults for missing values
   const mergedConfig = {
     ...defaultConfig.development,
@@ -221,7 +221,7 @@ export function getMinimalConfig(): Partial<MailcowConfig> {
       },
       maxConnections: 100,
       keepAliveTimeout: 30000,
-      requestTimeout: 30000,
+      requestTimeout: 60000,
     },
   };
-} 
+}

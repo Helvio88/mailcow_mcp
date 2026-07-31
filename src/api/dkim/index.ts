@@ -4,12 +4,12 @@
  */
 
 import { APIClient } from '../client';
-import { 
-  MailcowDKIM, 
-  CreateDKIMRequest, 
-  UpdateDKIMRequest, 
+import {
+  MailcowDKIM,
+  CreateDKIMRequest,
+  UpdateDKIMRequest,
   ListDKIMParams,
-  MailcowAPIResponse 
+  MailcowAPIResponse
 } from '../../types/mailcow';
 import { buildDKIMEndpoint } from '../endpoints';
 import { APIAction } from '../../types/api';
@@ -26,7 +26,7 @@ export class DKIMAPI {
   async listDKIMKeys(params?: ListDKIMParams): Promise<MailcowDKIM[]> {
     const response = await this.client.get<MailcowDKIM[]>(
       buildDKIMEndpoint(APIAction.LIST),
-      { params }
+      params
     );
     return response;
   }
@@ -191,4 +191,4 @@ export class DKIMAPI {
       dkim.key_size > 0
     );
   }
-} 
+}

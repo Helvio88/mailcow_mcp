@@ -4,10 +4,10 @@
  */
 
 import { APIClient } from '../client';
-import { 
-  MailcowQuarantineItem, 
+import {
+  MailcowQuarantineItem,
   ListQuarantineParams,
-  MailcowAPIResponse 
+  MailcowAPIResponse
 } from '../../types/mailcow';
 import { buildQuarantineEndpoint } from '../endpoints';
 import { APIAction } from '../../types/api';
@@ -26,7 +26,7 @@ export class QuarantineAPI {
   ): Promise<MailcowQuarantineItem[]> {
     const response = await this.client.get<MailcowQuarantineItem[]>(
       buildQuarantineEndpoint(APIAction.LIST),
-      { params }
+      params
     );
     return response;
   }
@@ -236,4 +236,4 @@ export class QuarantineAPI {
       bySender,
     };
   }
-} 
+}

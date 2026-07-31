@@ -4,12 +4,12 @@
  */
 
 import { APIClient } from '../client';
-import { 
-  MailcowUser, 
-  CreateUserRequest, 
-  UpdateUserRequest, 
+import {
+  MailcowUser,
+  CreateUserRequest,
+  UpdateUserRequest,
   ListUsersParams,
-  MailcowAPIResponse 
+  MailcowAPIResponse
 } from '../../types/mailcow';
 import { buildUserEndpoint } from '../endpoints';
 import { APIAction } from '../../types/api';
@@ -26,7 +26,7 @@ export class UsersAPI {
   async listUsers(params?: ListUsersParams): Promise<MailcowUser[]> {
     const response = await this.client.get<MailcowUser[]>(
       buildUserEndpoint(APIAction.LIST),
-      { params }
+      params
     );
     return response;
   }
@@ -140,4 +140,4 @@ export class UsersAPI {
   async getUsersCreatedBefore(date: Date): Promise<MailcowUser[]> {
     return this.listUsers({ created_before: date });
   }
-} 
+}

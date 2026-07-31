@@ -1,4 +1,3 @@
-// @ts-ignore: Node.js fs import for file logging
 import * as fs from 'fs';
 import { LogEntry } from '../types';
 import { UtilLogLevel } from '../types/utils';
@@ -15,7 +14,6 @@ export interface LogDestination {
 
 export class ConsoleLogDestination implements LogDestination {
   write(entry: LogEntry): void {
-    // @ts-ignore: Node.js environment, console is available
     const formatted = this.formatEntry(entry);
     console.error(formatted);
   }
@@ -97,4 +95,4 @@ export class Logger implements ILogger {
   error(message: string, ...args: unknown[]): void {
     this.log('error', message, ...args);
   }
-} 
+}

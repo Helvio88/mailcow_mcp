@@ -41,7 +41,7 @@ Get current server configuration (sanitized, no secrets).
 {
   "api": {
     "url": "https://mail.example.com", 
-    "timeout": 30000,
+    "timeout": 60000,
     "hasKey": true
   },
   "server": {

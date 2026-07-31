@@ -109,7 +109,7 @@ export interface ValidationHelper {
   isObject(value: unknown): value is Record<string, unknown>;
   isArray(value: unknown): value is unknown[];
   isDate(value: unknown): value is Date;
-  isFunction(value: unknown): value is Function;
+  isFunction(value: unknown): value is (...args: unknown[]) => unknown;
   isEmpty(value: unknown): boolean;
   isValidEmail(email: string): boolean;
   isValidURL(url: string): boolean;
@@ -328,4 +328,4 @@ export enum LogLevel {
   INFO = 'info',
   WARN = 'warn',
   ERROR = 'error',
-} 
+}

@@ -8,7 +8,7 @@ export class ResourcesAPI {
   async listServices(params?: ListResourcesParams): Promise<MailcowService[]> {
     return this.client.get<MailcowService[]>(
       buildResourceEndpoint(APIAction.LIST),
-      { params }
+      params
     );
   }
 

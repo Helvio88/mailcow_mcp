@@ -12,9 +12,10 @@ export class AliasAPI {
   constructor(private client: APIClient) {}
 
   async listAliases(params?: ListAliasesParams): Promise<MailcowAlias[]> {
-    return this.client.get<MailcowAlias[]>(buildAliasEndpoint(APIAction.LIST), {
-      params,
-    });
+    return this.client.get<MailcowAlias[]>(
+      buildAliasEndpoint(APIAction.LIST),
+      params
+    );
   }
 
   async createAlias(alias: CreateAliasRequest): Promise<MailcowAlias> {

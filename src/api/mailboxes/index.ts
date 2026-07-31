@@ -15,10 +15,8 @@ export class MailboxAPI {
     const endpoint = params?.domain
       ? `${buildMailboxEndpoint(APIAction.LIST)}/${params.domain}`
       : buildMailboxEndpoint(APIAction.LIST);
-    const response = await this.client.get<MailcowMailbox[]>(endpoint, {
-      params,
-    });
-    
+    const response = await this.client.get<MailcowMailbox[]>(endpoint, params);
+
     // Handle different response formats
     if (Array.isArray(response)) {
       return response;
@@ -27,7 +25,7 @@ export class MailboxAPI {
       const mailboxes = (response as any).mailboxes || (response as any).data || response;
       return Array.isArray(mailboxes) ? mailboxes : [mailboxes];
     }
-    
+
     return [];
   }
 
@@ -65,4 +63,4 @@ export class MailboxAPI {
   async setMailboxQuota(mailboxId: string, quota: number): Promise<MailcowMailbox> {
     return this.updateMailbox(mailboxId, { quota });
   }
-} 
+}

@@ -31,14 +31,18 @@ export class AuthManager {
   async validateAPIKey(apiKey: string, clientIp?: string): Promise<AuthResult> {
     const result = await this.apiKeyManager.validateAPIKey(apiKey, clientIp);
     if (!result.success) {
-      auditLog('auth_failure', { apiKey, clientIp, error: result.error });
+      auditLog('auth_failure', { clientIp, error: result.error });
     }
     return result;
   }
 
   async createSession(apiKey: string, accessLevel: AccessLevel): Promise<SessionToken> {
     const session = await createSession(apiKey, accessLevel);
-    auditLog('session_created', { apiKey, accessLevel, session });
+    auditLog('session_created', {
+      userId: session.userId,
+      accessLevel,
+      expires: session.expires,
+    });
     return session;
   }
 
@@ -48,7 +52,12 @@ export class AuthManager {
 
   async refreshSession(sessionToken: string): Promise<SessionToken | null> {
     const session = await refreshSession(sessionToken);
-    if (session) auditLog('session_refreshed', { sessionToken });
+    if (session) {
+      auditLog('session_refreshed', {
+        userId: session.userId,
+        expires: session.expires,
+      });
+    }
     return session;
   }
 
@@ -83,26 +92,26 @@ export class AuthManager {
 
   private getOperationType(operation: string): OperationType {
     const lowerOperation = operation.toLowerCase();
-    
+
     // Check for write operations using the defined type
-    const hasWriteOperation = WRITE_OPERATIONS.some((op: WriteOperation) => 
+    const hasWriteOperation = WRITE_OPERATIONS.some((op: WriteOperation) =>
       lowerOperation.includes(op)
     );
     if (hasWriteOperation) return 'write';
-    
+
     // Check for admin operations using the defined type
-    const hasAdminOperation = ADMIN_OPERATIONS.some((op: AdminOperation) => 
+    const hasAdminOperation = ADMIN_OPERATIONS.some((op: AdminOperation) =>
       lowerOperation.includes(op)
     );
     if (hasAdminOperation) return 'admin';
-    
+
     // Default to read operations
     return 'read';
   }
 
   private isValidOperation(operation: string): boolean {
     const lowerOperation = operation.toLowerCase();
-    
+
     // Check if operation matches any of our defined operation types
     return READ_OPERATIONS.some((op: ReadOperation) => lowerOperation.includes(op)) ||
            WRITE_OPERATIONS.some((op: WriteOperation) => lowerOperation.includes(op)) ||
@@ -127,14 +136,14 @@ export class AuthManager {
       if (!resourceMatch) return false;
 
       // Check action match
-      const actionMatch = permission.actions.some(permAction => 
+      const actionMatch = permission.actions.some(permAction =>
         this.matchesCondition(action, permAction)
       );
       if (!actionMatch) return false;
 
       // Check conditions if any
       if (permission.conditions && permission.conditions.length > 0) {
-        return permission.conditions.every(condition => 
+        return permission.conditions.every(condition =>
           this.evaluateCondition(condition, resource as ResourceType, action as ActionType)
         );
       }
@@ -174,13 +183,13 @@ export class AuthManager {
   }
 
   private evaluateCondition(
-    condition: PermissionCondition, 
-    resource: ResourceType, 
+    condition: PermissionCondition,
+    resource: ResourceType,
     action: ActionType
   ): boolean {
     // Evaluate condition based on type, value, and operator
     const { type, value, operator } = condition;
-    
+
     // First check if the condition type matches the resource
     const resourceTypeMatch = this.matchesResourceType(type, resource);
     if (!resourceTypeMatch) return false;
@@ -246,4 +255,4 @@ export class AuthManager {
       return this.evaluateContainsCondition(value, resource, action);
     }
   }
-} 
+}

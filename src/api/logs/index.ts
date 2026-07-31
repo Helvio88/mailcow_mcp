@@ -8,7 +8,7 @@ export class LogsAPI {
   async getLogs(params?: LogFilter): Promise<MailcowLogEntry[]> {
     return this.client.get<MailcowLogEntry[]>(
       buildLogEndpoint(APIAction.LIST),
-      { params }
+      params
     );
   }
 
@@ -16,7 +16,7 @@ export class LogsAPI {
     const filterParams = { ...params, service: 'access' };
     return this.client.get<MailcowLogEntry[]>(
       buildLogEndpoint(APIAction.LIST),
-      { params: filterParams }
+      filterParams
     );
   }
 
@@ -24,7 +24,7 @@ export class LogsAPI {
     const filterParams = { ...params, level: 'error' };
     return this.client.get<MailcowLogEntry[]>(
       buildLogEndpoint(APIAction.LIST),
-      { params: filterParams }
+      filterParams
     );
   }
 
@@ -32,7 +32,7 @@ export class LogsAPI {
     const filterParams = { ...params, service: 'performance' };
     return this.client.get<MailcowLogEntry[]>(
       buildLogEndpoint(APIAction.LIST),
-      { params: filterParams }
+      filterParams
     );
   }
 }

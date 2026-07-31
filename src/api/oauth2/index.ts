@@ -4,12 +4,12 @@
  */
 
 import { APIClient } from '../client';
-import { 
-  MailcowOAuth2Client, 
-  CreateOAuth2Request, 
-  UpdateOAuth2Request, 
+import {
+  MailcowOAuth2Client,
+  CreateOAuth2Request,
+  UpdateOAuth2Request,
   ListOAuth2Params,
-  MailcowAPIResponse 
+  MailcowAPIResponse
 } from '../../types/mailcow';
 import { buildOAuth2Endpoint } from '../endpoints';
 import { APIAction } from '../../types/api';
@@ -28,7 +28,7 @@ export class OAuth2API {
   ): Promise<MailcowOAuth2Client[]> {
     const response = await this.client.get<MailcowOAuth2Client[]>(
       buildOAuth2Endpoint(APIAction.LIST),
-      { params }
+      params
     );
     return response;
   }
@@ -231,4 +231,4 @@ export class OAuth2API {
       null
     );
   }
-} 
+}
