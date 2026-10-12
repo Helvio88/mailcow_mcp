@@ -98,9 +98,12 @@ export interface MailcowAlias {
   address: string;
   goto: string;
   domain: string;
-  active: boolean;
-  created: Date;
-  modified: Date;
+  active: boolean | number;
+  created: string | Date;
+  modified: string | Date | null;
+  public_comment?: string;
+  private_comment?: string;
+  sogo_visible?: number;
   attributes?: Record<string, unknown>;
 }
 
@@ -108,11 +111,33 @@ export interface CreateAliasRequest {
   address: string;
   goto: string;
   active?: boolean;
+  sogo_visible?: boolean;
+  public_comment?: string;
+  private_comment?: string;
 }
 
 export interface UpdateAliasRequest {
   goto?: string;
   active?: boolean;
+}
+
+// Time-limited (spam) alias types
+export interface MailcowTimeLimitedAlias {
+  address: string;
+  goto: string;
+  validity: number; // Unix timestamp when the alias expires
+  created: string;
+  modified: string | null;
+  description?: string;
+  permanent?: number;
+}
+
+export interface CreateTimeLimitedAliasRequest {
+  username: string; // Mailbox that receives the mail
+  domain?: string; // Domain for the generated address, defaults to the mailbox domain
+  validity?: number; // Hours until the alias expires
+  description?: string;
+  permanent?: boolean;
 }
 
 // User Types
