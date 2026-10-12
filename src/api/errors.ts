@@ -94,3 +94,19 @@ export function handleAPIError(error: unknown): APIError {
   // Unknown error type
   return new APIError('Unknown error occurred', 0);
 } 
+/**
+ * Mailcow answers write calls with HTTP 200 and a list of status objects such as
+ * [{ type: 'success' | 'danger' | 'error', msg: [...] }]. Throw when any of them failed.
+ */
+export function assertMailcowSuccess(response: unknown): void {
+  const items = Array.isArray(response) ? response : [response];
+  for (const item of items) {
+    if (item && typeof item === 'object') {
+      const { type, msg } = item as { type?: string; msg?: unknown };
+      if (type === 'danger' || type === 'error') {
+        const detail = Array.isArray(msg) ? msg.join(' ') : String(msg ?? 'unknown error');
+        throw new APIError(`Mailcow API error: ${detail}`, 400, response);
+      }
+    }
+  }
+}
