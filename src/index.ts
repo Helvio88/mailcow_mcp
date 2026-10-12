@@ -36,7 +36,8 @@ import { JobsAPI } from './api/syncjobs/index.js';
 import { LogTools } from './tools/logs/index.js';
 import { LogsAPI } from './api/logs/index.js';
 import { EmailTools } from './tools/email/index.js';
-// import { AliasTools } from './tools/aliases/index.js';
+import { AliasTools } from './tools/aliases/index.js';
+import { AliasAPI } from './api/aliases/index.js';
 
 /**
  * Main MCP Server class
@@ -219,6 +220,8 @@ class MailcowMCPServer {
         'domains:read', 'domains:write', 'domains:delete',
         // Mailbox permissions  
         'mailboxes:read', 'mailboxes:write', 'mailboxes:delete',
+        // Alias permissions
+        'aliases:read', 'aliases:write', 'aliases:delete',
         // Queue permissions
         'queues:read', 'queues:write', 'queues:delete',
         // Sync job permissions
@@ -413,8 +416,8 @@ class MailcowMCPServer {
     // Register email tools
     await this.registerEmailTools();
     
-    // TODO: Register alias tools when implemented
-    // await this.registerAliasTools();
+    // Register alias tools
+    await this.registerAliasTools();
   }
 
   /**
@@ -1009,6 +1012,48 @@ class MailcowMCPServer {
 
     } catch (error) {
       this.logger.error('Failed to register log tools', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Register alias and time-limited alias tools
+   */
+  private async registerAliasTools(): Promise<void> {
+    if (!this.apiClient) {
+      this.logger.warn('API client not available - skipping alias tools registration');
+      return;
+    }
+
+    try {
+      const aliasAPI = new AliasAPI(this.apiClient);
+
+      const tools = [
+        new AliasTools.ListAliasesTool(this.logger, aliasAPI),
+        new AliasTools.CreateAliasTool(this.logger, aliasAPI),
+        new AliasTools.DeleteAliasTool(this.logger, aliasAPI),
+        new AliasTools.ListTimeLimitedAliasesTool(this.logger, aliasAPI),
+        new AliasTools.CreateTimeLimitedAliasTool(this.logger, aliasAPI),
+        new AliasTools.DeleteTimeLimitedAliasTool(this.logger, aliasAPI),
+      ];
+
+      for (const tool of tools) {
+        this.toolRegistry.register({
+          name: tool.name,
+          description: tool.description,
+          inputSchema: tool.inputSchema,
+        });
+        this.toolRegistry.registerHandler(tool.name, async (input, context) => {
+          return await tool.execute(input, context);
+        });
+      }
+
+      this.logger.info('Alias tools registered successfully', {
+        tools: tools.map(tool => tool.name)
+      });
+
+    } catch (error) {
+      this.logger.error('Failed to register alias tools', error);
       throw error;
     }
   }
