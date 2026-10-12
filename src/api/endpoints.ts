@@ -21,6 +21,7 @@ export const API_ENDPOINTS = {
     CREATE: '/api/v1/add/mailbox',
     UPDATE: '/api/v1/edit/mailbox',
     DELETE: '/api/v1/delete/mailbox',
+    GET: '/api/v1/get/mailbox',
   },
 
   // Alias endpoints
@@ -161,6 +162,8 @@ export function buildMailboxEndpoint(action: APIAction): string {
       return API_ENDPOINTS.MAILBOXES.UPDATE;
     case APIAction.DELETE:
       return API_ENDPOINTS.MAILBOXES.DELETE;
+    case APIAction.GET:
+      return API_ENDPOINTS.MAILBOXES.GET;
     default:
       throw new Error(`Unknown mailbox action: ${action}`);
   }
