@@ -245,7 +245,7 @@ export class CreateAliasTool extends AliasTool {
  */
 export class DeleteAliasTool extends AliasTool {
   readonly name = 'delete_alias';
-  readonly description = 'Delete an alias by address or id';
+  readonly description = 'Delete an alias. Put its address or numeric id in alias and set confirm to true';
   readonly inputSchema = {
     type: 'object' as const,
     properties: {
@@ -423,7 +423,7 @@ export class CreateTimeLimitedAliasTool extends AliasTool {
  */
 export class DeleteTimeLimitedAliasTool extends AliasTool {
   readonly name = 'delete_time_limited_alias';
-  readonly description = 'Delete a time-limited (temporary/spam) alias by address';
+  readonly description = 'Delete a time-limited (temporary/spam) alias. Put its address in address and set confirm to true';
   readonly inputSchema = {
     type: 'object' as const,
     properties: {
@@ -432,8 +432,12 @@ export class DeleteTimeLimitedAliasTool extends AliasTool {
         description: 'Time-limited alias address to delete',
         pattern: EMAIL_PATTERN,
       },
+      confirm: {
+        type: 'boolean' as const,
+        description: 'Confirmation that you want to delete the time-limited alias',
+      },
     },
-    required: ['address'],
+    required: ['address', 'confirm'],
     additionalProperties: false,
   };
 
@@ -443,8 +447,11 @@ export class DeleteTimeLimitedAliasTool extends AliasTool {
       const denied = this.precheck(input, context, ['aliases:delete', 'write']);
       if (denied) return denied;
 
-      const { address } = input;
+      const { address, confirm } = input;
       if (typeof address !== 'string') return this.invalid('address must be a string');
+      if (confirm !== true) {
+        return this.invalid('Time-limited alias deletion requires explicit confirmation (confirm: true)');
+      }
 
       await this.aliasAPI.deleteTimeLimitedAlias(address);
 

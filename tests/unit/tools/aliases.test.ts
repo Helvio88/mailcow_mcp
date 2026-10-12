@@ -35,6 +35,10 @@ describe('Alias Management Tools', () => {
     return tool;
   };
 
+  // The real validator (the module is mocked above), to prove the advertised schema is what is enforced.
+  const realValidate = (tool: { inputSchema: any }, input: unknown) =>
+    jest.requireActual('../../../src/tools/validation').validateToolInput(input, tool.inputSchema);
+
   const parse = (result: any) => JSON.parse(result.result.content[0].text);
 
   beforeEach(() => {
@@ -116,6 +120,14 @@ describe('Alias Management Tools', () => {
       expect(aliasAPI.deleteAlias).toHaveBeenCalledWith(1);
     });
 
+    it('should advertise the schema its validator accepts', () => {
+      const tool = new DeleteAliasTool(logger, aliasAPI);
+      expect(tool.inputSchema.required).toEqual(['alias', 'confirm']);
+      expect(tool.description).toMatch(/in alias/);
+      expect(realValidate(tool, { alias: 'sales@example.com', confirm: true }).valid).toBe(true);
+      expect(realValidate(tool, { address: 'sales@example.com' }).valid).toBe(false);
+    });
+
     it('should report not found', async () => {
       const tool = prepare(new DeleteAliasTool(logger, aliasAPI));
       (aliasAPI.getAliasDetails as jest.Mock).mockRejectedValue(new Error('Alias not found'));
@@ -143,9 +155,26 @@ describe('Alias Management Tools', () => {
       expect(parse(result).alias.address).toBe('abc@example.com');
     });
 
+    it('should require confirmation to delete', async () => {
+      const tool = prepare(new DeleteTimeLimitedAliasTool(logger, aliasAPI));
+      for (const input of [{ address: 'abc@example.com' }, { address: 'abc@example.com', confirm: false }]) {
+        const result = await tool.execute(input, context);
+        expect(result.success).toBe(false);
+        expect(result.error?.code).toBe(MCPErrorCode.INVALID_PARAMS);
+      }
+      expect(aliasAPI.deleteTimeLimitedAlias).not.toHaveBeenCalled();
+    });
+
+    it('should advertise address and confirm as required', () => {
+      const tool = new DeleteTimeLimitedAliasTool(logger, aliasAPI);
+      expect(tool.inputSchema.required).toEqual(['address', 'confirm']);
+      expect(realValidate(tool, { address: 'abc@example.com', confirm: true }).valid).toBe(true);
+      expect(realValidate(tool, { address: 'abc@example.com' }).valid).toBe(false);
+    });
+
     it('should delete by address', async () => {
       const tool = prepare(new DeleteTimeLimitedAliasTool(logger, aliasAPI));
-      const result = await tool.execute({ address: 'abc@example.com' }, context);
+      const result = await tool.execute({ address: 'abc@example.com', confirm: true }, context);
       expect(result.success).toBe(true);
       expect(aliasAPI.deleteTimeLimitedAlias).toHaveBeenCalledWith('abc@example.com');
     });

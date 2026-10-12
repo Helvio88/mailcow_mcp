@@ -45147,6 +45147,12 @@ var API_ENDPOINTS = {
     DELETE: "/api/v1/delete/alias",
     GET: "/api/v1/get/alias"
   },
+  // Time-limited (spam) alias endpoints
+  TIME_LIMITED_ALIASES: {
+    LIST: "/api/v1/get/time_limited_aliases",
+    CREATE: "/api/v1/add/time_limited_alias",
+    DELETE: "/api/v1/delete/time_limited_alias"
+  },
   // User endpoints
   USERS: {
     LIST: "/api/v1/get/user",
@@ -45268,6 +45274,34 @@ function buildMailboxEndpoint(action) {
       return API_ENDPOINTS.MAILBOXES.GET;
     default:
       throw new Error(`Unknown mailbox action: ${action}`);
+  }
+}
+function buildAliasEndpoint(action) {
+  switch (action) {
+    case "list" /* LIST */:
+      return API_ENDPOINTS.ALIASES.LIST;
+    case "create" /* CREATE */:
+      return API_ENDPOINTS.ALIASES.CREATE;
+    case "update" /* UPDATE */:
+      return API_ENDPOINTS.ALIASES.UPDATE;
+    case "delete" /* DELETE */:
+      return API_ENDPOINTS.ALIASES.DELETE;
+    case "get" /* GET */:
+      return API_ENDPOINTS.ALIASES.GET;
+    default:
+      throw new Error(`Unknown alias action: ${action}`);
+  }
+}
+function buildTimeLimitedAliasEndpoint(action) {
+  switch (action) {
+    case "list" /* LIST */:
+      return API_ENDPOINTS.TIME_LIMITED_ALIASES.LIST;
+    case "create" /* CREATE */:
+      return API_ENDPOINTS.TIME_LIMITED_ALIASES.CREATE;
+    case "delete" /* DELETE */:
+      return API_ENDPOINTS.TIME_LIMITED_ALIASES.DELETE;
+    default:
+      throw new Error(`Unknown time-limited alias action: ${action}`);
   }
 }
 function buildUserEndpoint(action) {
@@ -50395,6 +50429,540 @@ var EmailTools = {
   GetEmailTemplatesTool
 };
 
+// src/tools/aliases/index.ts
+var EMAIL_PATTERN = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$";
+var formatAlias = (alias) => ({
+  id: alias.id,
+  address: alias.address,
+  goto: alias.goto,
+  domain: alias.domain,
+  active: alias.active === true || alias.active === 1,
+  public_comment: alias.public_comment || void 0,
+  private_comment: alias.private_comment || void 0,
+  created: alias.created,
+  modified: alias.modified
+});
+var formatTimeLimitedAlias = (alias) => ({
+  address: alias.address,
+  goto: alias.goto,
+  description: alias.description || void 0,
+  permanent: alias.permanent === 1,
+  expires_at: alias.validity ? new Date(alias.validity * 1e3).toISOString() : null,
+  expired: alias.validity ? alias.validity * 1e3 < Date.now() : false,
+  created: alias.created
+});
+var AliasTool = class extends BaseTool {
+  constructor(logger, aliasAPI) {
+    super(logger, {
+      category: "alias" /* ALIAS */,
+      version: "1.0.0",
+      requiresAuth: true,
+      rateLimited: true
+    });
+    this.aliasAPI = aliasAPI;
+  }
+  aliasAPI;
+  /**
+   * Shared permission and schema checks; returns an error result or null
+   */
+  precheck(input, context, permissions) {
+    if (!this.validatePermissions(context, permissions)) {
+      return {
+        success: false,
+        error: {
+          code: -32006 /* AUTHORIZATION_ERROR */,
+          message: `Permission denied: requires ${permissions[0]} permission`
+        }
+      };
+    }
+    const validation = this.validateInput(input);
+    if (!validation.valid) {
+      return {
+        success: false,
+        error: {
+          code: -32602 /* INVALID_PARAMS */,
+          message: `Input validation failed: ${validation.errors.map((e) => e.message).join(", ")}`
+        }
+      };
+    }
+    return null;
+  }
+  invalid(message) {
+    return { success: false, error: { code: -32602 /* INVALID_PARAMS */, message } };
+  }
+};
+var ListAliasesTool = class extends AliasTool {
+  name = "list_aliases";
+  description = "List aliases in the Mailcow server with optional filtering";
+  inputSchema = {
+    type: "object",
+    properties: {
+      domain: {
+        type: "string",
+        description: "Filter by domain"
+      },
+      goto: {
+        type: "string",
+        description: "Only aliases that deliver to this address"
+      },
+      search: {
+        type: "string",
+        description: "Search alias addresses and destinations (partial match)"
+      },
+      active_only: {
+        type: "boolean",
+        description: "Only return active aliases"
+      },
+      limit: {
+        type: "number",
+        description: "Maximum number of aliases to return",
+        minimum: 1,
+        maximum: 1e3
+      }
+    },
+    additionalProperties: false
+  };
+  async execute(input, context) {
+    try {
+      this.logExecution(input, context, true);
+      const denied = this.precheck(input, context, ["aliases:read", "read"]);
+      if (denied) return denied;
+      const { domain, goto, search, active_only = false, limit = 100 } = input;
+      const aliases = await this.aliasAPI.listAliases();
+      let filtered = aliases;
+      if (typeof domain === "string") {
+        filtered = filtered.filter((a) => a.domain === domain);
+      }
+      if (typeof goto === "string") {
+        const target = goto.toLowerCase();
+        filtered = filtered.filter(
+          (a) => a.goto.toLowerCase().split(",").map((g) => g.trim()).includes(target)
+        );
+      }
+      if (typeof search === "string") {
+        const term = search.toLowerCase();
+        filtered = filtered.filter(
+          (a) => a.address.toLowerCase().includes(term) || a.goto.toLowerCase().includes(term)
+        );
+      }
+      if (active_only) {
+        filtered = filtered.filter((a) => a.active === true || a.active === 1);
+      }
+      if (typeof limit === "number" && limit > 0 && limit < filtered.length) {
+        filtered = filtered.slice(0, limit);
+      }
+      return {
+        success: true,
+        result: ToolUtils.createJsonResult({
+          total_aliases: aliases.length,
+          filtered_aliases: filtered.length,
+          aliases: filtered.map(formatAlias)
+        })
+      };
+    } catch (error2) {
+      return this.handleError(error2, context);
+    }
+  }
+};
+var CreateAliasTool = class extends AliasTool {
+  name = "create_alias";
+  description = "Create an alias that forwards mail to one or more addresses";
+  inputSchema = {
+    type: "object",
+    properties: {
+      address: {
+        type: "string",
+        description: "Alias address (e.g. sales@example.com, or @example.com for a catch-all)"
+      },
+      goto: {
+        type: "string",
+        description: "Destination address(es), comma separated"
+      },
+      active: {
+        type: "boolean",
+        description: "Whether the alias should be active (default true)"
+      },
+      sogo_visible: {
+        type: "boolean",
+        description: "Show the alias as a sender identity in SOGo"
+      },
+      public_comment: {
+        type: "string",
+        description: "Public comment",
+        maxLength: 255
+      },
+      private_comment: {
+        type: "string",
+        description: "Private comment",
+        maxLength: 255
+      }
+    },
+    required: ["address", "goto"],
+    additionalProperties: false
+  };
+  async execute(input, context) {
+    try {
+      this.logExecution(input, context, true);
+      const denied = this.precheck(input, context, ["aliases:write", "write"]);
+      if (denied) return denied;
+      const { address, goto, active, sogo_visible, public_comment, private_comment } = input;
+      if (typeof address !== "string" || typeof goto !== "string") {
+        return this.invalid("address and goto must be strings");
+      }
+      const alias = await this.aliasAPI.createAlias({
+        address,
+        goto,
+        active: typeof active === "boolean" ? active : true,
+        sogo_visible: typeof sogo_visible === "boolean" ? sogo_visible : void 0,
+        public_comment: typeof public_comment === "string" ? public_comment : void 0,
+        private_comment: typeof private_comment === "string" ? private_comment : void 0
+      });
+      return {
+        success: true,
+        result: ToolUtils.createJsonResult({
+          message: `Alias '${alias.address}' created successfully`,
+          alias: formatAlias(alias)
+        })
+      };
+    } catch (error2) {
+      return this.handleError(error2, context);
+    }
+  }
+};
+var DeleteAliasTool = class extends AliasTool {
+  name = "delete_alias";
+  description = "Delete an alias. Put its address or numeric id in alias and set confirm to true";
+  inputSchema = {
+    type: "object",
+    properties: {
+      alias: {
+        type: "string",
+        description: "Alias address or numeric id to delete"
+      },
+      confirm: {
+        type: "boolean",
+        description: "Confirmation that you want to delete the alias"
+      }
+    },
+    required: ["alias", "confirm"],
+    additionalProperties: false
+  };
+  async execute(input, context) {
+    try {
+      this.logExecution(input, context, true);
+      const denied = this.precheck(input, context, ["aliases:delete", "write"]);
+      if (denied) return denied;
+      const { alias, confirm } = input;
+      if (typeof alias !== "string") return this.invalid("alias must be a string");
+      if (confirm !== true) {
+        return this.invalid("Alias deletion requires explicit confirmation (confirm: true)");
+      }
+      let existing;
+      try {
+        existing = await this.aliasAPI.getAliasDetails(alias);
+      } catch {
+        return {
+          success: false,
+          error: { code: -32003 /* RESOURCE_NOT_FOUND */, message: `Alias '${alias}' not found` }
+        };
+      }
+      await this.aliasAPI.deleteAlias(existing.id);
+      return {
+        success: true,
+        result: ToolUtils.createJsonResult({
+          message: `Alias '${existing.address}' deleted successfully`,
+          deleted_alias: formatAlias(existing)
+        })
+      };
+    } catch (error2) {
+      return this.handleError(error2, context);
+    }
+  }
+};
+var ListTimeLimitedAliasesTool = class extends AliasTool {
+  name = "list_time_limited_aliases";
+  description = "List the time-limited (temporary/spam) aliases of a mailbox";
+  inputSchema = {
+    type: "object",
+    properties: {
+      mailbox: {
+        type: "string",
+        description: "Mailbox username (email address)",
+        pattern: EMAIL_PATTERN
+      },
+      include_expired: {
+        type: "boolean",
+        description: "Include aliases that have already expired (default true)"
+      }
+    },
+    required: ["mailbox"],
+    additionalProperties: false
+  };
+  async execute(input, context) {
+    try {
+      this.logExecution(input, context, true);
+      const denied = this.precheck(input, context, ["aliases:read", "read"]);
+      if (denied) return denied;
+      const { mailbox, include_expired = true } = input;
+      if (typeof mailbox !== "string") return this.invalid("mailbox must be a string");
+      const aliases = (await this.aliasAPI.listTimeLimitedAliases(mailbox)).map(formatTimeLimitedAlias);
+      const shown = include_expired ? aliases : aliases.filter((a) => !a.expired);
+      return {
+        success: true,
+        result: ToolUtils.createJsonResult({
+          mailbox,
+          total_aliases: aliases.length,
+          aliases: shown
+        })
+      };
+    } catch (error2) {
+      return this.handleError(error2, context);
+    }
+  }
+};
+var CreateTimeLimitedAliasTool = class extends AliasTool {
+  name = "create_time_limited_alias";
+  description = "Create a temporary alias with a random address that delivers to a mailbox until it expires";
+  inputSchema = {
+    type: "object",
+    properties: {
+      mailbox: {
+        type: "string",
+        description: "Mailbox username (email address) that receives the mail",
+        pattern: EMAIL_PATTERN
+      },
+      domain: {
+        type: "string",
+        description: "Domain for the generated address (defaults to the mailbox domain)"
+      },
+      validity_hours: {
+        type: "number",
+        description: "Hours until the alias expires (default 24)",
+        minimum: 1,
+        maximum: 87600
+      },
+      description: {
+        type: "string",
+        description: "Note describing what the alias is for",
+        maxLength: 255
+      },
+      permanent: {
+        type: "boolean",
+        description: "Never expire the alias"
+      }
+    },
+    required: ["mailbox"],
+    additionalProperties: false
+  };
+  async execute(input, context) {
+    try {
+      this.logExecution(input, context, true);
+      const denied = this.precheck(input, context, ["aliases:write", "write"]);
+      if (denied) return denied;
+      const { mailbox, domain, validity_hours, description, permanent } = input;
+      if (typeof mailbox !== "string") return this.invalid("mailbox must be a string");
+      const alias = await this.aliasAPI.createTimeLimitedAlias({
+        username: mailbox,
+        domain: typeof domain === "string" ? domain : void 0,
+        validity: typeof validity_hours === "number" ? validity_hours : void 0,
+        description: typeof description === "string" ? description : void 0,
+        permanent: typeof permanent === "boolean" ? permanent : void 0
+      });
+      return {
+        success: true,
+        result: ToolUtils.createJsonResult({
+          message: alias ? `Time-limited alias '${alias.address}' created for ${mailbox}` : `Time-limited alias created for ${mailbox}`,
+          alias: alias ? formatTimeLimitedAlias(alias) : void 0
+        })
+      };
+    } catch (error2) {
+      return this.handleError(error2, context);
+    }
+  }
+};
+var DeleteTimeLimitedAliasTool = class extends AliasTool {
+  name = "delete_time_limited_alias";
+  description = "Delete a time-limited (temporary/spam) alias. Put its address in address and set confirm to true";
+  inputSchema = {
+    type: "object",
+    properties: {
+      address: {
+        type: "string",
+        description: "Time-limited alias address to delete",
+        pattern: EMAIL_PATTERN
+      },
+      confirm: {
+        type: "boolean",
+        description: "Confirmation that you want to delete the time-limited alias"
+      }
+    },
+    required: ["address", "confirm"],
+    additionalProperties: false
+  };
+  async execute(input, context) {
+    try {
+      this.logExecution(input, context, true);
+      const denied = this.precheck(input, context, ["aliases:delete", "write"]);
+      if (denied) return denied;
+      const { address, confirm } = input;
+      if (typeof address !== "string") return this.invalid("address must be a string");
+      if (confirm !== true) {
+        return this.invalid("Time-limited alias deletion requires explicit confirmation (confirm: true)");
+      }
+      await this.aliasAPI.deleteTimeLimitedAlias(address);
+      return {
+        success: true,
+        result: ToolUtils.createJsonResult({
+          message: `Time-limited alias '${address}' deleted successfully`
+        })
+      };
+    } catch (error2) {
+      return this.handleError(error2, context);
+    }
+  }
+};
+var AliasTools = {
+  ListAliasesTool,
+  CreateAliasTool,
+  DeleteAliasTool,
+  ListTimeLimitedAliasesTool,
+  CreateTimeLimitedAliasTool,
+  DeleteTimeLimitedAliasTool
+};
+
+// src/api/errors.ts
+var APIError = class extends Error {
+  statusCode;
+  response;
+  constructor(message, statusCode, response) {
+    super(message);
+    this.statusCode = statusCode;
+    this.response = response;
+    this.name = "APIError";
+  }
+};
+function assertMailcowSuccess(response) {
+  const items = Array.isArray(response) ? response : [response];
+  for (const item of items) {
+    if (item && typeof item === "object") {
+      const { type, msg } = item;
+      if (type === "danger" || type === "error") {
+        const detail = Array.isArray(msg) ? msg.join(" ") : String(msg ?? "unknown error");
+        throw new APIError(`Mailcow API error: ${detail}`, 400, response);
+      }
+    }
+  }
+}
+
+// src/api/aliases/index.ts
+var toArray2 = (response) => {
+  if (Array.isArray(response)) return response;
+  if (response && typeof response === "object" && Object.keys(response).length > 0) {
+    return [response];
+  }
+  return [];
+};
+var AliasAPI = class {
+  constructor(client) {
+    this.client = client;
+  }
+  client;
+  async listAliases() {
+    const response = await this.client.get(
+      `${buildAliasEndpoint("list" /* LIST */)}/all`
+    );
+    return toArray2(response);
+  }
+  async createAlias(alias) {
+    const payload = {
+      address: alias.address,
+      goto: alias.goto,
+      active: alias.active === false ? 0 : 1
+    };
+    if (alias.sogo_visible !== void 0) payload.sogo_visible = alias.sogo_visible ? 1 : 0;
+    if (alias.public_comment !== void 0) payload.public_comment = alias.public_comment;
+    if (alias.private_comment !== void 0) payload.private_comment = alias.private_comment;
+    const response = await this.client.post(buildAliasEndpoint("create" /* CREATE */), payload);
+    assertMailcowSuccess(response);
+    return this.getAliasDetails(alias.address);
+  }
+  async updateAlias(aliasId, updates) {
+    const attr = {};
+    if (updates.goto !== void 0) attr.goto = updates.goto;
+    if (updates.active !== void 0) attr.active = updates.active ? 1 : 0;
+    const response = await this.client.post(buildAliasEndpoint("update" /* UPDATE */), {
+      items: [String(aliasId)],
+      attr
+    });
+    assertMailcowSuccess(response);
+  }
+  /**
+   * Delete aliases by numeric id (mailcow's delete endpoint takes ids, not addresses)
+   */
+  async deleteAlias(aliasIds) {
+    const ids = (Array.isArray(aliasIds) ? aliasIds : [aliasIds]).map(String);
+    const response = await this.client.post(buildAliasEndpoint("delete" /* DELETE */), ids);
+    assertMailcowSuccess(response);
+  }
+  /**
+   * Find an alias by address or numeric id
+   */
+  async getAliasDetails(aliasId) {
+    const key = String(aliasId).toLowerCase();
+    const aliases = await this.listAliases();
+    const alias = aliases.find(
+      (a) => String(a.id) === key || a.address?.toLowerCase() === key
+    );
+    if (!alias) {
+      throw new Error(`Alias not found: ${aliasId}`);
+    }
+    return alias;
+  }
+  async getUserAliases(username) {
+    const aliases = await this.listAliases();
+    return aliases.filter(
+      (a) => a.goto.split(",").map((g) => g.trim()).includes(username)
+    );
+  }
+  async listTimeLimitedAliases(mailbox) {
+    const response = await this.client.get(
+      `${buildTimeLimitedAliasEndpoint("list" /* LIST */)}/${encodeURIComponent(mailbox)}`
+    );
+    return toArray2(response);
+  }
+  /**
+   * Create a time-limited alias and return it. Mailcow generates the address,
+   * so the new alias is found by diffing the mailbox's list before and after.
+   */
+  async createTimeLimitedAlias(request) {
+    const before = new Set(
+      (await this.listTimeLimitedAliases(request.username)).map((a) => a.address)
+    );
+    const payload = {
+      username: request.username,
+      domain: request.domain ?? request.username.split("@")[1],
+      validity: request.validity ?? 24
+    };
+    if (request.description !== void 0) payload.description = request.description;
+    if (request.permanent !== void 0) payload.permanent = request.permanent ? 1 : 0;
+    const response = await this.client.post(
+      buildTimeLimitedAliasEndpoint("create" /* CREATE */),
+      payload
+    );
+    assertMailcowSuccess(response);
+    const after = await this.listTimeLimitedAliases(request.username);
+    return after.find((a) => !before.has(a.address));
+  }
+  async deleteTimeLimitedAlias(addresses) {
+    const list = Array.isArray(addresses) ? addresses : [addresses];
+    const response = await this.client.post(
+      buildTimeLimitedAliasEndpoint("delete" /* DELETE */),
+      list
+    );
+    assertMailcowSuccess(response);
+  }
+};
+
 // src/index.ts
 import_dotenv.default.config();
 function applyCLIOverrides(args = process.argv.slice(2)) {
@@ -50562,6 +51130,7 @@ var MailcowMCPServer = class {
       "read",
       "domains:read",
       "mailboxes:read",
+      "aliases:read",
       "users:read",
       "dkim:read",
       "queues:read",
@@ -50578,6 +51147,8 @@ var MailcowMCPServer = class {
       "domains:delete",
       "mailboxes:write",
       "mailboxes:delete",
+      "aliases:write",
+      "aliases:delete",
       "users:write",
       "users:delete",
       "dkim:write",
@@ -50738,6 +51309,7 @@ var MailcowMCPServer = class {
     await this.registerSyncJobTools();
     await this.registerLogTools();
     await this.registerEmailTools();
+    await this.registerAliasTools();
   }
   /**
    * Register domain management tools
@@ -51195,6 +51767,42 @@ var MailcowMCPServer = class {
       });
     } catch (error2) {
       this.logger.error("Failed to register log tools", error2);
+      throw error2;
+    }
+  }
+  /**
+   * Register alias and time-limited alias tools
+   */
+  async registerAliasTools() {
+    if (!this.apiClient) {
+      this.logger.warn("API client not available - skipping alias tools registration");
+      return;
+    }
+    try {
+      const aliasAPI = new AliasAPI(this.apiClient);
+      const tools = [
+        new AliasTools.ListAliasesTool(this.logger, aliasAPI),
+        new AliasTools.CreateAliasTool(this.logger, aliasAPI),
+        new AliasTools.DeleteAliasTool(this.logger, aliasAPI),
+        new AliasTools.ListTimeLimitedAliasesTool(this.logger, aliasAPI),
+        new AliasTools.CreateTimeLimitedAliasTool(this.logger, aliasAPI),
+        new AliasTools.DeleteTimeLimitedAliasTool(this.logger, aliasAPI)
+      ];
+      for (const tool of tools) {
+        this.toolRegistry.register({
+          name: tool.name,
+          description: tool.description,
+          inputSchema: tool.inputSchema
+        });
+        this.toolRegistry.registerHandler(tool.name, async (input, context) => {
+          return await tool.execute(input, context);
+        });
+      }
+      this.logger.info("Alias tools registered successfully", {
+        tools: tools.map((tool) => tool.name)
+      });
+    } catch (error2) {
+      this.logger.error("Failed to register alias tools", error2);
       throw error2;
     }
   }
