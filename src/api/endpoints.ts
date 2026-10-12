@@ -32,6 +32,13 @@ export const API_ENDPOINTS = {
     GET: '/api/v1/get/alias',
   },
 
+  // Time-limited (spam) alias endpoints
+  TIME_LIMITED_ALIASES: {
+    LIST: '/api/v1/get/time_limited_aliases',
+    CREATE: '/api/v1/add/time_limited_alias',
+    DELETE: '/api/v1/delete/time_limited_alias',
+  },
+
   // User endpoints
   USERS: {
     LIST: '/api/v1/get/user',
@@ -187,6 +194,21 @@ export function buildAliasEndpoint(
       return API_ENDPOINTS.ALIASES.GET;
     default:
       throw new Error(`Unknown alias action: ${action}`);
+  }
+}
+
+export function buildTimeLimitedAliasEndpoint(
+  action: APIAction.LIST | APIAction.CREATE | APIAction.DELETE
+): string {
+  switch (action) {
+    case APIAction.LIST:
+      return API_ENDPOINTS.TIME_LIMITED_ALIASES.LIST;
+    case APIAction.CREATE:
+      return API_ENDPOINTS.TIME_LIMITED_ALIASES.CREATE;
+    case APIAction.DELETE:
+      return API_ENDPOINTS.TIME_LIMITED_ALIASES.DELETE;
+    default:
+      throw new Error(`Unknown time-limited alias action: ${action}`);
   }
 }
 
